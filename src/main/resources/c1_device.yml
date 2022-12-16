@@ -1,0 +1,24 @@
+amount: 1
+vmAllocationPolicy: Simple
+vmMigration: enabled
+costPerSec: 0.1
+costPerMem: 0.05
+costPerStorage: 0.001
+costPerBw: 0.1
+sans:
+  - !san
+    capacity: 10000
+    bandwidth: 10000
+    networkLatency: 5
+hosts:
+  - !hosts
+    amount: 10
+    ram: 1000000
+    bw: 100000
+    storage: 1000
+    pes: 8
+    mips: 50000
+    vmScheduler: TimeShared
+    ramProvisioner: Simple
+    bwProvisioner: Simple
+    peProvisioner: Simple

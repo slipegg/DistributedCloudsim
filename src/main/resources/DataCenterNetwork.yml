@@ -1,0 +1,12 @@
+!com.companyname.bank.DataCenterNetworks
+DataCenterNetworks:
+  - !DataCenterNetwork
+    name: c1
+    ip: localhost
+    port: 8001
+    basic_info: c1 has 200 hosts
+  - !DataCenterNetwork
+    name: c2
+    ip: localhost
+    port: 8002
+    basic_info: c2 has 200 hosts

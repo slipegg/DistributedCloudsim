@@ -1,0 +1,23 @@
+customers:
+  - !customer
+    amount: 1
+    vms:
+      - !vm
+        amount: 20
+        size: 500
+        pes: 4
+        mips: 1000
+        ram: 2000
+        bw: 1000
+        cloudletScheduler: SpaceShared
+        vmm: Xen
+    cloudlets:
+      - !cloudlet
+        amount: 10
+        pes: 2
+        length: 5000
+        fileSize: 50
+        outputSize: 70
+        utilizationModelCpu: Full
+        utilizationModelRam: Full
+        utilizationModelBw: Full
