@@ -216,6 +216,14 @@ public class DataCenterSockets {
         System.out.printf("%s向%s发送了:%s", target_datacenter_name, datacenter_network.getName(), file_context);
     }
 
+    public List<String> getOtherDatacenterNames() {
+        List<String> datacenter_names = new ArrayList<>();
+        for (DataCenterNetwork tmp : other_datacenter_networks) {
+            datacenter_names.add(tmp.getName());
+        }
+        return datacenter_names;
+    }
+
     // public void waitDataCenterInfo() {
     // while (true) {
     // System.out.println("waiting");
