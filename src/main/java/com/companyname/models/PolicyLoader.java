@@ -42,6 +42,8 @@ import org.cloudbus.cloudsim.provisioners.ResourceProvisioner;
 import org.cloudbus.cloudsim.schedulers.cloudlet.CloudletScheduler;
 import org.cloudbus.cloudsim.schedulers.vm.VmScheduler;
 import org.cloudbus.cloudsim.utilizationmodels.UtilizationModel;
+import org.cloudbus.cloudsim.utilizationmodels.UtilizationModelDynamic;
+import java.util.regex.*;
 
 /**
  * Dynamically creates instances of classes such as {@link VmScheduler},
@@ -184,16 +186,30 @@ public class PolicyLoader {
         return generateFullClassName(PKG + ".provisioners", classPrefix, classSuffix);
     }
 
+    private static boolean isNumeric(String str) {
+        Pattern pattern = Pattern.compile("[0-9]*\\.?[0-9]+");
+        Matcher isNum = pattern.matcher(str);
+        if (!isNum.matches()) {
+            return false;
+        }
+        return true;
+    }
+
     public static UtilizationModel utilizationModel(final String classSuffix) throws RuntimeException {
-        try {
-            final String className = generateFullClassName(PKG + ".utilizationmodels", "UtilizationModel", classSuffix);
-            Class<UtilizationModel> klass = PolicyLoader.<UtilizationModel>loadClass(className);
-            Constructor cons = klass.getConstructor();
-            return (UtilizationModel) cons.newInstance();
-        } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
-                | IllegalArgumentException | InvocationTargetException ex) {
-            Logger.getLogger(PolicyLoader.class.getName()).log(Level.SEVERE, null, ex);
-            throw new RuntimeException(ex);
+        if (isNumeric(classSuffix)) {
+            return new UtilizationModelDynamic(Double.parseDouble(classSuffix));
+        } else {
+            try {
+                final String className = generateFullClassName(PKG + ".utilizationmodels", "UtilizationModel",
+                        classSuffix);
+                Class<UtilizationModel> klass = PolicyLoader.<UtilizationModel>loadClass(className);
+                Constructor cons = klass.getConstructor();
+                return (UtilizationModel) cons.newInstance();
+            } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
+                    | IllegalArgumentException | InvocationTargetException ex) {
+                Logger.getLogger(PolicyLoader.class.getName()).log(Level.SEVERE, null, ex);
+                throw new RuntimeException(ex);
+            }
         }
     }
 }
