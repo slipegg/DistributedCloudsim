@@ -38,10 +38,13 @@ import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlReader;
 import com.esotericsoftware.yamlbeans.YamlWriter;
 
+import java.util.Collections;
+
 public class CustomerDemandManager {
     String file_context = "";
     CustomerRegistrys customerRegistrys;
     List<DatacenterBroker> brokers = new ArrayList<>();
+    Integer runned_customer_index = 0;
 
     public CustomerDemandManager(String file_name) {
         // 读取任务需求的配置文件
@@ -62,7 +65,7 @@ public class CustomerDemandManager {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println(file_context);
+            // System.out.println(file_context);
             final YamlReader reader = new YamlReader(file_context);
             final YamlConfig cfg = reader.getConfig();
             cfg.setClassTag("customer", CustomerRegistry.class);
@@ -70,7 +73,9 @@ public class CustomerDemandManager {
             cfg.setClassTag("cloudlet", CloudletRegistry.class);
 
             customerRegistrys = reader.read(CustomerRegistrys.class);
-            System.out.println("customerRegistrys:\n" + customerRegistrys);
+            // 按submit time排序
+            Collections.sort(customerRegistrys.getCustomers());
+            System.out.println("customerRegistrys:\n" + customerRegistrys.getCustomers());
         } catch (FileNotFoundException e) {
             System.out.println("error! e");
             System.out.println(e);
@@ -80,13 +85,19 @@ public class CustomerDemandManager {
         }
     }
 
-    public void createVmsAndCloudlets(CloudSim simulation) {
+    public CustomerRegistrys getCustomerRegistrys() {
+        return customerRegistrys;
+    }
+
+    public void createVmsAndCloudlets(CloudSim simulation, Double now_time) {
         List<CustomerRegistry> customers = customerRegistrys.getCustomers();
-        for (int i = 0; i < customers.size(); i++) {
-            CustomerRegistry customer = customers.get(i);
+        for (; runned_customer_index < customers.size()
+                && customers.get(runned_customer_index).getSubmit_time() <= now_time; runned_customer_index++) {
+            CustomerRegistry customer = customers.get(runned_customer_index);
             for (int customer_amount = 0; customer_amount < customer.getAmount(); customer_amount++) {
                 DatacenterBroker broker = new DatacenterBrokerSimple(simulation);
-                submitVmsAndCloudlets(broker, customer);
+                broker.setVmDestructionDelay(simulation.getMinTimeBetweenEvents() + 0.1);// VM用完就丢，这里需要斟酌
+                submitVmsAndCloudletsForOneCustomer(broker, customer);
                 brokers.add(broker);
             }
         }
@@ -104,7 +115,15 @@ public class CustomerDemandManager {
         return file_context;
     }
 
-    private void submitVmsAndCloudlets(DatacenterBroker broker, CustomerRegistry customer) {
+    public boolean isSubmitAllCustomer() {
+        return runned_customer_index >= customerRegistrys.getCustomers().size();
+    }
+
+    public List<DatacenterBroker> getBrokers() {
+        return brokers;
+    }
+
+    private void submitVmsAndCloudletsForOneCustomer(DatacenterBroker broker, CustomerRegistry customer) {
         List<Vm> vm_list = createVmListForOneBroker(broker, customer);
         List<Cloudlet> cloudlet_list = createCloudletsListForOneBroker(broker, customer);
         System.out.println("vm_list:\n" + vm_list.size());
@@ -152,6 +171,7 @@ public class CustomerDemandManager {
     }
 
     private Cloudlet createCloudlet(CloudletRegistry cloudletr, DatacenterBroker broker) {
+        // TODO(2022.12.17) 更多的动态资源使用率如何实现
         UtilizationModel cpuUtilization = PolicyLoader.utilizationModel(cloudletr.getUtilizationModelCpu());
         UtilizationModel ramUtilization = PolicyLoader.utilizationModel(cloudletr.getUtilizationModelRam());
         UtilizationModel bwUtilization = PolicyLoader.utilizationModel(cloudletr.getUtilizationModelBw());
