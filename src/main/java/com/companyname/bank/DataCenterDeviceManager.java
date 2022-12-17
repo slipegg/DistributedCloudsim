@@ -39,15 +39,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.*;
 
+import java.util.Collections;
+
 public class DataCenterDeviceManager {
     private String file_context = "";
     public DatacenterRegistry datacenterRegistry;
+    private List<DatacenterRegistry> other_datacenterRegistries;
+    private Datacenter datacenter;
+    private int created_host_index = 0;
 
     public String getFileContext() {
         return file_context;
     }
 
-    public DataCenterDeviceManager(String file_name) {
+    private DatacenterRegistry getDatacenterRegistryByFile(String file_name) {
+        DatacenterRegistry res = new DatacenterRegistry();
         // 读取数据中心的配置文件
         try {
             final String FilePath = DataCenterSockets.class.getClassLoader().getResource(file_name)
@@ -55,46 +61,115 @@ public class DataCenterDeviceManager {
             File file = new File(FilePath);
             FileReader fr = new FileReader(file);
 
-            String line;
-            BufferedReader br = new BufferedReader(fr);
-            try {
-                while ((line = br.readLine()) != null) {
-                    // 一行一行地处理...
-                    // System.out.println(line);
-                    file_context = file_context + line + "\n";
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            System.out.println(file_context);
-            final YamlReader reader = new YamlReader(file_context);
+            // String line;
+            // BufferedReader br = new BufferedReader(fr);
+            // try {
+            // while ((line = br.readLine()) != null) {
+            // // 一行一行地处理...
+            // // System.out.println(line);
+            // file_context = file_context + line + "\n";
+            // }
+            // } catch (IOException e) {
+            // e.printStackTrace();
+            // }
+            final YamlReader reader = new YamlReader(fr);
             final YamlConfig cfg = reader.getConfig();
             cfg.setClassTag("san", SanStorageRegistry.class);
             cfg.setClassTag("hosts", HostRegistry.class);
-
-            datacenterRegistry = reader.read(DatacenterRegistry.class);
-            System.out.println(datacenterRegistry);
+            res = reader.read(DatacenterRegistry.class);
+            Collections.sort(res.getHosts());
+            return res;
         } catch (FileNotFoundException e) {
             System.out.println("error! e");
             System.out.println(e);
+            System.exit(0);
         } catch (YamlException y) {
             System.out.println("error! y");
             System.out.println(y);
+            System.exit(0);
         }
+        return res;
     }
 
-    public DatacenterSimple createDataCenter(CloudSim simulation) {
+    public DatacenterRegistry get_DatacenterRegistry() {
+        return datacenterRegistry;
+    }
+
+    public DataCenterDeviceManager(String datacenter_name, List<String> other_datacenter_name) {
+        String file_back_str = "_device.yml";
+        // 读取数据中心的配置文件
+        String file_name = datacenter_name + file_back_str;
+        System.out.println(file_name);
+        datacenterRegistry = getDatacenterRegistryByFile(file_name);
+        for (var name : other_datacenter_name) {
+            file_name = name + file_back_str;
+            other_datacenterRegistries.add(getDatacenterRegistryByFile(file_name));
+        }
+        // try {
+        // final String FilePath =
+        // DataCenterSockets.class.getClassLoader().getResource(file_name)
+        // .getPath();
+        // File file = new File(FilePath);
+        // FileReader fr = new FileReader(file);
+
+        // String line;
+        // BufferedReader br = new BufferedReader(fr);
+        // try {
+        // while ((line = br.readLine()) != null) {
+        // // 一行一行地处理...
+        // // System.out.println(line);
+        // file_context = file_context + line + "\n";
+        // }
+        // } catch (IOException e) {
+        // e.printStackTrace();
+        // }
+        // System.out.println(file_context);
+        // final YamlReader reader = new YamlReader(file_context);
+        // final YamlConfig cfg = reader.getConfig();
+        // cfg.setClassTag("san", SanStorageRegistry.class);
+        // cfg.setClassTag("hosts", HostRegistry.class);
+
+        // datacenterRegistry = reader.read(DatacenterRegistry.class);
+        // Collections.sort(datacenterRegistry.getHosts());
+        // // System.out.println(datacenterRegistry);
+        // } catch (FileNotFoundException e) {
+        // System.out.println("error! e");
+        // System.out.println(e);
+        // } catch (YamlException y) {
+        // System.out.println("error! y");
+        // System.out.println(y);
+        // }
+    }
+
+    public Datacenter createDataCenter(CloudSim simulation) {
         List<HostRegistry> host_register = datacenterRegistry.getHosts();
         final var hostList = new ArrayList<Host>(host_register.size());
-        for (int i = 0; i < host_register.size(); i++) {
-            for (int host_amount = 0; host_amount < host_register.get(i).getAmount(); host_amount++) {
-                final var host = createHost(host_register.get(i));
+        for (; created_host_index < host_register.size()
+                && host_register.get(created_host_index).getSubmit_time() <= 0.0; created_host_index++) {
+            for (int host_amount = 0; host_amount < host_register.get(created_host_index).getAmount(); host_amount++) {
+                final var host = createHost(host_register.get(created_host_index));
                 hostList.add(host);
             }
         }
-
+        datacenter = new DatacenterSimple(simulation, hostList);
+        datacenter.getCharacteristics()
+                .setCostPerSecond(datacenterRegistry.getCostPerSec())
+                .setCostPerMem(datacenterRegistry.getCostPerMem())
+                .setCostPerStorage(datacenterRegistry.getCostPerMem())
+                .setCostPerBw(datacenterRegistry.getCostPerBw());
         // Uses a VmAllocationPolicySimple by default to allocate VMs
-        return new DatacenterSimple(simulation, hostList);
+        return datacenter;
+    }
+
+    public void updateHost(double now_time) {
+        List<HostRegistry> host_register = datacenterRegistry.getHosts();
+        for (; created_host_index < host_register.size()
+                && host_register.get(created_host_index).getSubmit_time() <= now_time; created_host_index++) {
+            for (int host_amount = 0; host_amount < host_register.get(created_host_index).getAmount(); host_amount++) {
+                final var host = createHost(host_register.get(created_host_index));
+                datacenter.addHost(host);
+            }
+        }
     }
 
     private Host createHost(HostRegistry host_registry) {
