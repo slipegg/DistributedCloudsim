@@ -35,11 +35,11 @@ import java.util.List;
  * @author Thiago T. Sá
  * @since 1.0
  */
-public final class CustomerRegistry implements Serializable {
+public final class CustomerRegistry implements Serializable, Comparable<CustomerRegistry> {
     private long id;
     private String name;
     private Integer amount;
-    private Integer delay;
+    private double submit_time;
     private List<VmRegistry> vms;
     private List<CloudletRegistry> cloudlets;
 
@@ -47,19 +47,15 @@ public final class CustomerRegistry implements Serializable {
         vms = new ArrayList<>();
         cloudlets = new ArrayList<>();
         setAmount(1);
-        setDelay(0);
+        setSubmit_time(0);
     }
 
-    public String test() {
-        return "testC";
+    public double getSubmit_time() {
+        return submit_time;
     }
 
-    public Integer getDelay() {
-        return delay;
-    }
-
-    public void setDelay(Integer delay) {
-        this.delay = delay;
+    public void setSubmit_time(double submit_time) {
+        this.submit_time = submit_time;
     }
 
     /**
@@ -172,9 +168,9 @@ public final class CustomerRegistry implements Serializable {
     @Override
     public String toString() {
         StringBuilder s = new StringBuilder("Name=" + getName() + "\n");
+        s.append("submit time:" + Double.toString(submit_time) + "\n");
 
         s.append("\n++List of Virtual Machines per user from this customer++\n");
-        s.append(Integer.toString(delay));
         for (VmRegistry vmr : getVms()) {
             s.append("\n" + vmr.toString());
         }
@@ -201,4 +197,9 @@ public final class CustomerRegistry implements Serializable {
         this.amount = amount;
     }
 
+    @Override
+    public int compareTo(CustomerRegistry c) {
+        return c.getSubmit_time() - this.getSubmit_time() > 0 ? -1
+                : ((this.getSubmit_time() == c.getSubmit_time()) ? 0 : 1);
+    }
 }

@@ -1,9 +1,10 @@
 customers:
   - !customer
     amount: 1
+    submit_time: 10
     vms:
       - !vm
-        amount: 20
+        amount: 13
         size: 500
         pes: 4
         mips: 1000
@@ -13,11 +14,34 @@ customers:
         vmm: Xen
     cloudlets:
       - !cloudlet
-        amount: 10
+        amount: 5
         pes: 2
         length: 5000
         fileSize: 50
         outputSize: 70
         utilizationModelCpu: Full
-        utilizationModelRam: Full
+        utilizationModelRam: 0.8
+        utilizationModelBw: Full
+  - !customer
+    amount: 1
+    submit_time: 0
+    vms:
+      - !vm
+        amount: 10
+        size: 500
+        pes: 4
+        mips: 1000
+        ram: 2000
+        bw: 1000
+        cloudletScheduler: SpaceShared
+        vmm: Xen
+    cloudlets:
+      - !cloudlet
+        amount: 5
+        pes: 4
+        length: 5000
+        fileSize: 50
+        outputSize: 70
+        utilizationModelCpu: 0.5
+        utilizationModelRam: 0.5
         utilizationModelBw: Full
