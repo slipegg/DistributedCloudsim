@@ -132,6 +132,7 @@ public class DataCenterSockets {
     // 数据中心网络基础信息
     public DataCenterNetwork datacenter_network;
     public List<DataCenterNetwork> other_datacenter_networks = new ArrayList<>();
+    List<String> other_datacenter_names = new ArrayList<>();
     // 创建的socket连接
     Map<String, SocketChannel> other_socket_map = new HashMap<>();
     public final Map<String, String> msg_map = new HashMap<>();
@@ -140,6 +141,9 @@ public class DataCenterSockets {
     // 信息传递的中介
     private DatacenterRegistryRecv datacenterRegistryRecv = new DatacenterRegistryRecv();
     private CloudletRegistryRecv cloudletRegistryRecv = new CloudletRegistryRecv();
+
+    // 记录各个数据中心当前的模拟时间
+    private Map<String, Double> datacenter_simulation_time_map = new HashMap<>();
 
     public Map<String, DatacenterRegistry> getDataCenterInfo_map() {
         return dataCenterInfo_map;
@@ -162,6 +166,8 @@ public class DataCenterSockets {
                     datacenter_network = dc;
                 } else {
                     other_datacenter_networks.add(dc);
+                    other_datacenter_names.add(dc.getName());
+                    datacenter_simulation_time_map.put(dc.getName(), 0.0);
                 }
             }
             System.out.println(datacenter_network.getName());
@@ -177,7 +183,8 @@ public class DataCenterSockets {
 
     public void buildLink() {
         // 创建epoll来接受消息
-        SelectThread selectThread = new SelectThread(datacenter_network, msg_map, datacenterRegistryRecv);
+        SelectThread selectThread = new SelectThread(datacenter_network, msg_map, datacenterRegistryRecv,
+                other_datacenter_networks.size(), datacenter_simulation_time_map);
         selectThread.start();
 
         List<ReconnectThread> reconnectThreads = new ArrayList<>();
@@ -197,57 +204,58 @@ public class DataCenterSockets {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
-
-            System.out.println("初始化连接完成");
         }
+        System.out.println("初始化连接完成");
+        // selectThread.interrupt();
+    }
+
+    public void synchronization(double now_time) {
+        for (String name : other_datacenter_names) {
+            sendMsg(name, "time", String.format("%.2f\n", now_time));
+        }
+        for (String name : other_datacenter_names) {
+            while (now_time - datacenter_simulation_time_map.get(name) > 1.0) {
+                try {
+                    Thread.sleep(1);
+                    ;// 是否要睡眠
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void sendMsg(String datacenter_name, String type, String message) {
+        String sendMsg = datacenter_network.getName() + " " + type + " " + message;
+        SocketChannel socketChannel = other_socket_map.get(datacenter_name);
+
+        Thread wt = new WriteThread(socketChannel, sendMsg);
+        wt.start();
+
+        // System.out.printf("%s向%s发送了:%s", datacenter_name,
+        // datacenter_network.getName(), message);
     }
 
     public void sendMsg(String datacenter_name, String type, int round, String message) {
         String sendMsg = datacenter_network.getName() + " " + type + " " + Integer.toString(round) + " " + message;
         Thread wt = new WriteThread(other_socket_map.get(datacenter_name), sendMsg);
         wt.start();
-        System.out.printf("%s向%s发送了:%s", datacenter_name, datacenter_network.getName(), message);
+        // System.out.printf("%s向%s发送了:%s", datacenter_name,
+        // datacenter_network.getName(), message);
     }
 
     public void sendInitDataCenterInfo(String target_datacenter_name, String file_context) {
         String sendMsg = datacenter_network.getName() + " " + "dataCenterInfo " + file_context;
         Thread wt = new WriteThread(other_socket_map.get(target_datacenter_name), sendMsg);
         wt.start();
-        System.out.printf("%s向%s发送了:%s", target_datacenter_name, datacenter_network.getName(), file_context);
+        // System.out.printf("%s向%s发送了:%s", target_datacenter_name,
+        // datacenter_network.getName(), file_context);
     }
 
     public List<String> getOtherDatacenterNames() {
-        List<String> datacenter_names = new ArrayList<>();
-        for (DataCenterNetwork tmp : other_datacenter_networks) {
-            datacenter_names.add(tmp.getName());
-        }
-        return datacenter_names;
+        return other_datacenter_names;
     }
 
-    // public void waitDataCenterInfo() {
-    // while (true) {
-    // System.out.println("waiting");
-    // boolean is_recv_all = true;
-    // for (int i = 0; i < other_datacenter_networks.size(); i++) {
-    // if
-    // (!dataCenterInfo_map.containsKey(other_datacenter_networks.get(i).getName())
-    // || dataCenterInfo_map.get(other_datacenter_networks.get(i).getName()) ==
-    // null) {
-    // is_recv_all = false;
-    // break;
-    // }
-    // }
-    // if (is_recv_all) {
-    // break;
-    // } else {
-    // try {
-    // Thread.sleep(1);
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // }
-    // }
-    // }
-    // }
     public DatacenterRegistry get_datacenter_recv(String datacenter_name, Integer round) {
         var res = datacenterRegistryRecv.getInfo(datacenter_name, round);
         if (res == null) {

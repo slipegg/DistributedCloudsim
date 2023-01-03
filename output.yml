@@ -1,0 +1,7 @@
+!cloudreports.models.HostRegistry
+amount: 2
+bw: 2333
+mips: 20000.0
+pes: 4
+ram: 1000
+storage: 40000

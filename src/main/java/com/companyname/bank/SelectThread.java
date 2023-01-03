@@ -25,25 +25,30 @@ class SelectThread extends Thread {
 
     private DataCenterNetwork datacenter_network;
     private Map<String, String> msg_map;
-
+    private int connectNum;
     private DatacenterRegistryRecv datacenterRegistryRecv;
+    private Map<String, Double> datacenter_simulation_time_map;
     // private Map<String, List<Integer,DatacenterRegistry>()> dataCenterInfo_map;
 
     public SelectThread(DataCenterNetwork _datacenter_network, Map<String, String> _msg_map,
-            DatacenterRegistryRecv _datacenterRegistryRecv) {
+            DatacenterRegistryRecv _datacenterRegistryRecv, int connectNum,
+            Map<String, Double> datacenter_simulation_time_map) {
         // info_map.put("c1", "");
         // info_map.put("c2", "");
         // info_map.put("c3", "");
         this.datacenter_network = _datacenter_network;
         this.msg_map = _msg_map;
         this.datacenterRegistryRecv = _datacenterRegistryRecv;
+        this.connectNum = connectNum;
+        this.datacenter_simulation_time_map = datacenter_simulation_time_map;
         // this.dataCenterInfo_map = _dataCenterInfo_map;
     }
 
     @Override
     public void run() {
-        System.out.printf("%s:%d的selecThread启动\n", datacenter_network.getIp(), datacenter_network.getPort());
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+        System.out.printf("%s:%d的selecThread启动,等待其他数据中心连接中...\n", datacenter_network.getIp(),
+                datacenter_network.getPort());
+        ByteBuffer byteBuffer = ByteBuffer.allocate(15);
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         try {
             // 开启挑选器
@@ -57,6 +62,8 @@ class SelectThread extends Thread {
             // 在挑选器中注册通道(服务器通道)
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
             SelectableChannel sc = null;
+
+            int connected_num = 0;
             while (true) {
                 // 阻塞的挑选方法
                 selector.select();
@@ -70,6 +77,7 @@ class SelectThread extends Thread {
                             SocketChannel socketChannel = ((ServerSocketChannel) sc).accept();
                             socketChannel.configureBlocking(false); // 设置非阻塞
                             System.out.println("accept:" + socketChannel.getLocalAddress());
+                            connected_num++;
                             // 注册读事件监听
                             // socketChannel.register(selector, SelectionKey.OP_READ |
                             // SelectionKey.OP_WRITE); //注册读写时间
@@ -78,16 +86,16 @@ class SelectThread extends Thread {
                         if (key.isReadable()) {
                             // 读时间监听获取
                             SocketChannel sc1 = (SocketChannel) key.channel();
-                            System.out.println("getRemoteAddress:" + sc1.getRemoteAddress());
+                            // System.out.println("getRemoteAddress:" + sc1.getRemoteAddress());
                             Integer len = sc1.read(byteBuffer);
                             if (len < 0) {
-                                System.out.printf("len:%d,连接关闭！\n", len);
+                                // System.out.printf("len:%d,连接关闭！\n", len);
                                 // selector.selectedKeys().remove(key);
                                 key.cancel();
                                 continue;
                             }
                             while (len > 0) {
-                                System.out.printf("len:%d\n", len);
+                                // System.out.printf("len:%d\n", len);
                                 byteBuffer.flip();
                                 bos.write(byteBuffer.array());
                                 byteBuffer.clear();
@@ -108,6 +116,7 @@ class SelectThread extends Thread {
                     } catch (Exception e) {
                         // 存在异常时, 清除该sokect
                         System.out.println("exception!");
+                        e.printStackTrace();
                         key.cancel();
                     }
                 }
@@ -115,31 +124,60 @@ class SelectThread extends Thread {
                 selector.selectedKeys().clear();
             }
         } catch (Exception e) {
-            // e.printStackTrace();
+            e.printStackTrace();
+            return;
         }
     }
 
-    private void dealMsg(String message) {
-        System.out.println("dealMsg");
-        int index = message.indexOf(" ");
-        String datacenter_name = message.substring(0, index);
-        String tmp = message.substring(index + 1);
-
-        index = tmp.indexOf(" ");
-        String type = tmp.substring(0, index);
-        tmp = tmp.substring(index + 1);
-        System.out.printf("type:%s\n", type);
-
-        index = tmp.indexOf(" ");
-        String round = tmp.substring(0, index);
-        System.out.printf("round:%s\n", round);
-
-        tmp = tmp.substring(index + 1);
-        System.out.printf("msg:%s\n", tmp);
-
-        if (type.equals("dataCenterInfo")) {
-            addDataCenterInfo(datacenter_name, round, tmp);
+    private void dealMsg(String _message) {
+        // System.out.println("dealMsg:");
+        // System.out.println(_message);
+        String[] messages = _message.split("\n");
+        String[] t;
+        for (int i = messages.length - 1; i >= 0; i--) {
+            String message = messages[i];
+            t = message.split(" ");
+            if (t.length != 3) {
+                continue;
+            } else {
+                datacenter_simulation_time_map.put(t[0], Double.valueOf(t[2]));
+            }
         }
+
+        // String message = messages[messages.length - 2];
+        // System.out.println(_message);
+        // System.out.println(messages);
+        // System.out.println(message);
+        // int index = message.indexOf(" ");
+        // String datacenter_name = message.substring(0, index);
+        // String tmp = message.substring(index + 1);
+
+        // index = tmp.indexOf(" ");
+        // String type = tmp.substring(0, index);
+        // tmp = tmp.substring(index + 1);
+        // // System.out.printf("type:%s\n", type);
+
+        // if (type.equals("time")) {
+        // // index = tmp.indexOf(" ");
+        // // String time = tmp.substring(0, index);
+        // // System.out.printf("time:%s\n", tmp);
+        // try {
+        // double t = Double.valueOf(tmp);
+        // datacenter_simulation_time_map.put(datacenter_name, Double.valueOf(t));
+        // } catch (Exception e) {
+        // e.printStackTrace();
+        // }
+        // }
+        // else if (type.equals("dataCenterInfo")) {
+        // index = tmp.indexOf(" ");
+        // String round = tmp.substring(0, index);
+        // System.out.printf("round:%s\n", round);
+
+        // tmp = tmp.substring(index + 1);
+        // System.out.printf("msg:%s\n", tmp);
+
+        // addDataCenterInfo(datacenter_name, round, tmp);
+        // }
     }
 
     private void addDataCenterInfo(String datacenter_name, String round, String dataCenterInfo) {

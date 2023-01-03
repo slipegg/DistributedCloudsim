@@ -42,12 +42,14 @@ public final class CustomerRegistry implements Serializable, Comparable<Customer
     private double submit_time;
     private List<VmRegistry> vms;
     private List<CloudletRegistry> cloudlets;
+    private String preference;
 
     public CustomerRegistry() {
         vms = new ArrayList<>();
         cloudlets = new ArrayList<>();
         setAmount(1);
         setSubmit_time(0);
+        preference = null;
     }
 
     public double getSubmit_time() {
@@ -56,6 +58,14 @@ public final class CustomerRegistry implements Serializable, Comparable<Customer
 
     public void setSubmit_time(double submit_time) {
         this.submit_time = submit_time;
+    }
+
+    public void setPreference(String preference) {
+        this.preference = preference;
+    }
+
+    public String getPreference() {
+        return preference;
     }
 
     /**
@@ -168,6 +178,7 @@ public final class CustomerRegistry implements Serializable, Comparable<Customer
     @Override
     public String toString() {
         StringBuilder s = new StringBuilder("Name=" + getName() + "\n");
+        s.append("amount:" + Integer.toString(amount) + "\n");
         s.append("submit time:" + Double.toString(submit_time) + "\n");
 
         s.append("\n++List of Virtual Machines per user from this customer++\n");
