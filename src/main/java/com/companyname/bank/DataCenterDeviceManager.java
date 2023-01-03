@@ -38,15 +38,22 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.*;
+import java.util.Map;
 
 import java.util.Collections;
+import java.util.HashMap;
 
 public class DataCenterDeviceManager {
     private String file_context = "";
     public DatacenterRegistry datacenterRegistry;
-    private List<DatacenterRegistry> other_datacenterRegistries;
+    public Map<String, DatacenterRegistry> other_datacenterRegistries = new HashMap<>();
     private Datacenter datacenter;
     private int created_host_index = 0;
+    private String datacenter_name;
+
+    public String getDatacenter_name() {
+        return datacenter_name;
+    }
 
     public String getFileContext() {
         return file_context;
@@ -96,6 +103,7 @@ public class DataCenterDeviceManager {
     }
 
     public DataCenterDeviceManager(String datacenter_name, List<String> other_datacenter_name) {
+        this.datacenter_name = datacenter_name;
         String file_back_str = "_device.yml";
         // 读取数据中心的配置文件
         String file_name = datacenter_name + file_back_str;
@@ -103,42 +111,8 @@ public class DataCenterDeviceManager {
         datacenterRegistry = getDatacenterRegistryByFile(file_name);
         for (var name : other_datacenter_name) {
             file_name = name + file_back_str;
-            other_datacenterRegistries.add(getDatacenterRegistryByFile(file_name));
+            other_datacenterRegistries.put(name, getDatacenterRegistryByFile(file_name));
         }
-        // try {
-        // final String FilePath =
-        // DataCenterSockets.class.getClassLoader().getResource(file_name)
-        // .getPath();
-        // File file = new File(FilePath);
-        // FileReader fr = new FileReader(file);
-
-        // String line;
-        // BufferedReader br = new BufferedReader(fr);
-        // try {
-        // while ((line = br.readLine()) != null) {
-        // // 一行一行地处理...
-        // // System.out.println(line);
-        // file_context = file_context + line + "\n";
-        // }
-        // } catch (IOException e) {
-        // e.printStackTrace();
-        // }
-        // System.out.println(file_context);
-        // final YamlReader reader = new YamlReader(file_context);
-        // final YamlConfig cfg = reader.getConfig();
-        // cfg.setClassTag("san", SanStorageRegistry.class);
-        // cfg.setClassTag("hosts", HostRegistry.class);
-
-        // datacenterRegistry = reader.read(DatacenterRegistry.class);
-        // Collections.sort(datacenterRegistry.getHosts());
-        // // System.out.println(datacenterRegistry);
-        // } catch (FileNotFoundException e) {
-        // System.out.println("error! e");
-        // System.out.println(e);
-        // } catch (YamlException y) {
-        // System.out.println("error! y");
-        // System.out.println(y);
-        // }
     }
 
     public Datacenter createDataCenter(CloudSim simulation) {

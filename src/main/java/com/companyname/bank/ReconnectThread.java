@@ -26,14 +26,14 @@ public class ReconnectThread extends Thread {
     public void run() {
         while (true) {
             try {
-                Thread.sleep(1000);
+                // Thread.sleep(1000);
                 SocketChannel socketChannel_1 = SocketChannel.open();
                 socketChannel_1.connect(new InetSocketAddress(this.hostName, this.port));
                 this.success_socket = socketChannel_1;
                 break;
             } catch (Exception e) {
                 // e.printStackTrace();
-                System.out.printf("重连%s:%d中\n", hostName, port);
+                // System.out.printf("重连%s:%d中\n", hostName, port);
             }
         }
     }

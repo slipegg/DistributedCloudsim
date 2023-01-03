@@ -1,10 +1,11 @@
 customers:
   - !customer
     amount: 1
+    name: c2_1
     submit_time: 10
     vms:
       - !vm
-        amount: 13
+        amount: 5
         size: 500
         pes: 4
         mips: 1000
@@ -24,10 +25,35 @@ customers:
         utilizationModelBw: Full
   - !customer
     amount: 1
+    name: c2_0
     submit_time: 0
     vms:
       - !vm
-        amount: 10
+        amount: 5
+        size: 500
+        pes: 4
+        mips: 1000
+        ram: 2000
+        bw: 1000
+        cloudletScheduler: SpaceShared
+        vmm: Xen
+    cloudlets:
+      - !cloudlet
+        amount: 5
+        pes: 4
+        length: 5000
+        fileSize: 50
+        outputSize: 70
+        utilizationModelCpu: 0.5
+        utilizationModelRam: 0.5
+        utilizationModelBw: Full
+  - !customer
+    amount: 3
+    name: c2_2
+    submit_time: 15
+    vms:
+      - !vm
+        amount: 5
         size: 500
         pes: 4
         mips: 1000
