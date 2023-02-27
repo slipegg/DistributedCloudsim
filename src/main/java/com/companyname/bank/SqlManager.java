@@ -18,8 +18,8 @@ public class SqlManager {
         this.datacenter_name = datacenter_name;
         config = new HikariConfig();
         config.setJdbcUrl("jdbc:mariadb://119.8.33.152:3306/cloudsimPlus");
-        config.setUsername("root");
-        config.setPassword("root1234");
+        config.setUsername("your user name");
+        config.setPassword("your password");
         config.addDataSourceProperty("connectionTimeout", "2000"); // 连接超时：1秒
         config.addDataSourceProperty("idleTimeout", "60000"); // 空闲超时：60秒
         config.addDataSourceProperty("maximumPoolSize", "50"); // 最大连接数：10
